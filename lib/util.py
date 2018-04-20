@@ -37,7 +37,7 @@ import queue
 def inv_dict(d):
     return {v: k for k, v in d.items()}
 
-
+app_id     = "org.electroncash.ElectronCash"
 base_units = {'BCH':8, 'mBCH':5, 'cash':2}
 fee_levels = [_('Within 25 blocks'), _('Within 10 blocks'), _('Within 5 blocks'), _('Within 2 blocks'), _('In the next block')]
 
@@ -355,10 +355,15 @@ def user_dir():
     if 'ANDROID_DATA' in os.environ:
         return android_check_data_dir()
     elif os.name == 'posix':
-        # Prefer XDG Base directory spec based condiguration path, but use the legacy dot-directory
-        # configuration path if user has upgraded from a previous installation
-        xdg_config_home = os.environ.get("XDG_CONFIG_HOME", os.path.join(os.environ["HOME"], ".config"))
-        config_path_modern = os.path.join(xdg_config_home, "electron-cash")
+        # Prefer user library path on macOS and a XDG Base directory spec based condiguration path
+        # on other Unix systems, but use the legacy dot-directory configuration path if user has
+        # upgraded from a previous installation
+        if sys.platform.startswith("darwin"):
+            config_path_modern = os.path.join(os.environ["HOME"], "Library", "Application Support", app_id)
+        else:
+            xdg_config_home = os.environ.get("XDG_CONFIG_HOME", os.path.join(os.environ["HOME"], ".config"))
+            config_path_modern = os.path.join(xdg_config_home, "electron-cash")
+
         config_path_legacy = os.path.join(os.environ["HOME"], ".electron-cash")
         if os.path.exists(config_path_modern) and os.listdir(config_path_modern):
             return config_path_modern
