@@ -349,6 +349,18 @@ class ElectrumGui(QObject, PrintError):
         self.timer.start()
         self.config.open_last_wallet()
         path = self.config.get_wallet_path()
+
+        if self.config.path_upgraded_from:
+            msg = _("Electron Cash data files have been copied to a new location.\n\n"
+                "Old directory: {0}\n"
+                "New directory: {1}\n\n"
+                "You may delete the old directory if you do not intend using Electron-Cash version 3.3.* or lower on this system anymore."
+            ).format(self.config.path_upgraded_from, self.config.path)
+            d = QMessageBox(QMessageBox.Information, _('Information'), msg, QMessageBox.Ok)
+            d.setWindowModality(Qt.WindowModal)
+            d.setDefaultButton(QMessageBox.Ok)
+            d.exec_()
+
         if not self.start_new_window(path, self.config.get('url')):
             return
         signal.signal(signal.SIGINT, lambda *args: self.app.quit())

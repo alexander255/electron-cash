@@ -93,8 +93,8 @@ class SimpleConfig(PrintError):
         self.path_upgraded_from = None
 
         # Check whether migrating makes sense
-        if self.user_dir != user_dir:
-            # Custom user data directory function
+        if self.cmdline_options.get('electron_cash_path') or self.user_dir != user_dir:
+            # Custom user data directory set via `user_dir` function or command-line parameter
             return
         new_data_dir = self.user_dir()
         old_data_dir = old_user_dir()
