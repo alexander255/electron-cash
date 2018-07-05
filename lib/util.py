@@ -386,7 +386,8 @@ def user_dir(prefer_local=False):
     if 'ANDROID_DATA' in os.environ:
         return android_data_dir()
     elif os.name == 'posix' and "HOME" in os.environ:
-        return os.path.join(os.environ["HOME"], ".electron-cash" )
+        xdg_data_home = os.environ.get("XDG_DATA_HOME", os.path.join(os.environ["HOME"], ".local", "share"))
+        return os.path.join(xdg_data_home, "electron-cash")
     elif "APPDATA" in os.environ or "LOCALAPPDATA" in os.environ:
         app_dir = os.environ.get("APPDATA")
         localapp_dir = os.environ.get("LOCALAPPDATA")
@@ -397,6 +398,13 @@ def user_dir(prefer_local=False):
     else:
         #raise Exception("No home directory found in environment variables.")
         return
+
+
+def old_user_dir():
+    if os.name == "posix" and "ANDROID_DATA" not in os.environ:
+        return os.path.join(os.environ["HOME"], ".electron-cash" )
+    else:
+        return user_dir()
 
 
 def make_dir(path):

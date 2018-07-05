@@ -1,12 +1,14 @@
 import json
 import threading
 import time
+import traceback
 import os
+import shutil
 import stat
 
 from . import util
 from copy import deepcopy
-from .util import user_dir, make_dir, print_error, PrintError
+from .util import user_dir, old_user_dir, make_dir, print_error, PrintError
 
 from .bitcoin import MAX_FEE_RATE, FEE_TARGETS
 
@@ -66,6 +68,8 @@ class SimpleConfig(PrintError):
         # don't allow to be set on CLI:
         self.cmdline_options.pop('config_version', None)
 
+        self.upgrade_location()
+
         # Set self.path and read the user config
         self.user_config = {}  # for self.get in electrum_path()
         self.path = self.electrum_path()
@@ -84,6 +88,45 @@ class SimpleConfig(PrintError):
 
         # Make a singleton instance of 'self'
         set_config(self)
+
+    def upgrade_location(self):
+        self.path_upgraded_from = None
+
+        # Check whether migrating makes sense
+        if self.user_dir != user_dir:
+            # Custom user data directory function
+            return
+        new_data_dir = self.user_dir()
+        old_data_dir = old_user_dir()
+        if new_data_dir == old_data_dir:
+            # Old and current user data directory are the same
+            return
+        if os.path.exists(new_data_dir) or not os.path.exists(old_data_dir):
+            # New directory already exists or there is no old directory to copy from
+            return
+
+        self.print_stderr("Copying data files from “{0}” to “{1}”…".format(old_data_dir, new_data_dir))
+        try:
+            shutil.copytree(old_data_dir, new_data_dir, symlinks=True)
+        except shutil.Error as error:
+            # Something went wrong during copying
+            try:
+                # Try to clean up any possibly copied files
+                shutils.rmtree(new_data_dir, ignore_errors=True)
+            except Exception:
+                pass
+            finally:
+                # Display error
+                self.print_stderr("Copying data files failed: {0}: {1}".format(
+                    error.__class__.__name__, str(error)
+                ))
+                traceback.print_exception(error.__class__.__name__, str(error), error.__traceback__)
+
+                # Continue using old directory for now
+                self.user_data = old_user_data
+        else:
+            self.print_stderr("Copying data file succeeded! You may delete the old directory if you do not intend using Electron-Cash version 3.3.* or lower on this system anymore.")
+            self.path_upgraded_from = old_data_dir
 
     def electrum_path(self):
         # Read electrum_cash_path from command line
