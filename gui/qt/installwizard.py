@@ -255,7 +255,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
 
         if self.storage.requires_upgrade():
             self.hide()
-            msg = _("The format of your wallet '%s' must be upgraded for Electron Cash. This change will not be backward compatible"%path)
+            msg = _("The format of your wallet '{}' must be upgraded for Electron Cash. This change will not be backward compatible").format(path)
             if not self.question(msg):
                 return
             self.storage.upgrade()
