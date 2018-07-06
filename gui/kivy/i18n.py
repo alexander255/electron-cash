@@ -11,11 +11,13 @@ class _(str):
         t = _.translate(s, *args, **kwargs)
         o = super(_, cls).__new__(cls, t)
         o.source_text = s
+        o.source_args = args
+        o.source_kwargs = kwargs
         return o
 
     @staticmethod
     def translate(s, *args, **kwargs):
-        return _.lang(s).format(args, kwargs)
+        return _.lang(s).format(*args, **kwargs)
 
     @staticmethod
     def bind(label):
@@ -40,6 +42,6 @@ class _(str):
         _.lang = locales.gettext
         for label in _.observers:
             try:
-                label.text = _(label.text.source_text)
+                label.text = _(label.text.source_text, *label.text.source_args, **label.text.source_kwargs)
             except:
                 pass
