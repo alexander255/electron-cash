@@ -55,6 +55,7 @@ Cache.register('electrum_widgets', timeout=0)
 from kivy.uix.screenmanager import Screen
 from kivy.uix.tabbedpanel import TabbedPanel
 from kivy.uix.label import Label
+from kivy.uix.popup import Popup
 from kivy.core.clipboard import Clipboard
 
 Factory.register('TabbedCarousel', module='electroncash_gui.kivy.uix.screens')
@@ -477,6 +478,23 @@ class ElectrumWindow(App):
         uri = self.electrum_config.get('url')
         if uri:
             self.set_URI(uri)
+
+        if self.electrum_config.path_upgraded_from:
+            msg = _("Electron Cash data files have been copied to a new location.\n\n"
+                "Old directory: {0}\n"
+                "New directory: {1}\n\n"
+                "You may delete the old directory if you do not intend using Electron-Cash version 3.3.* or lower on this system anymore.",
+                self.electrum_config.path_upgraded_from, self.electrum_config.path
+            )
+
+            popup = Popup(title=_('Information'), content=Factory.BoxLayout(orientation="vertical"), size_hint=(0.7, 0.7))
+            label = Factory.Label(text=msg, valign='top', halign='justify')
+            label.bind(size=label.setter('text_size'))
+            popup.content.add_widget(label)
+            button = Factory.Button(text=_('OK'), size_hint_y=None, height=40)
+            button.bind(on_press=(lambda *a: popup.dismiss()))
+            popup.content.add_widget(button)
+            popup.open()
 
 
     def get_wallet_path(self):
