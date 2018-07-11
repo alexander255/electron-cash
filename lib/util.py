@@ -34,12 +34,18 @@ import inspect, weakref
 
 from .i18n import _
 
+try:
+    from . import util_macos
+except ImportError:
+    util_macos = None
+
 import queue
 
 def inv_dict(d):
     return {v: k for k, v in d.items()}
 
 
+app_id = 'org.electroncash.ElectronCash'
 base_units = {'BCH':8, 'mBCH':5, 'cash':2}
 fee_levels = [_('Within 25 blocks'), _('Within 10 blocks'), _('Within 5 blocks'), _('Within 2 blocks'), _('In the next block')]
 
@@ -385,6 +391,9 @@ def bh2u(x):
 def user_dir(prefer_local=False):
     if 'ANDROID_DATA' in os.environ:
         return android_data_dir()
+    elif sys.platform.startswith('darwin'):
+        app_support_dir = util_macos.get_user_directory('application-support')
+        return str(app_support_dir / app_id)
     elif os.name == 'posix' and "HOME" in os.environ:
         xdg_data_home = os.environ.get("XDG_DATA_HOME", os.path.join(os.environ["HOME"], ".local", "share"))
         return os.path.join(xdg_data_home, "electron-cash")
@@ -401,9 +410,12 @@ def user_dir(prefer_local=False):
 
 
 def old_user_dir():
-    if os.name == "posix" and "ANDROID_DATA" not in os.environ:
+    if "ANDROID_DATA" in os.environ:
+        return user_dir()
+
+    if sys.platform.startswith('darwin') or os.name == "posix":
         return os.path.join(os.environ["HOME"], ".electron-cash" )
-    else:
+
         return user_dir()
 
 
