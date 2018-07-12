@@ -24,9 +24,8 @@
 
 class _Void: pass
 
-import codecs
 import pathlib
-from ctypes import cdll, c_bool, c_uint, c_uint16, c_void_p, POINTER, util, cast, create_string_buffer, sizeof, Structure
+from ctypes import cdll, c_bool, c_char, c_uint, c_void_p, c_char_p, c_ssize_t, POINTER, util, cast, create_string_buffer, sizeof, Structure
 
 
 # macOS framework libraries used
@@ -42,12 +41,10 @@ foundation = cdll.LoadLibrary(foundation_path)
 NSApplicationSupportDirectory = 14
 NSCachesDirectory = 13
 NSUserDomainMask = 1
+kCFStringEncodingUTF8 = 0x08000100
 
 # macOS CoreFoundation types used
 CFIndex = c_ssize_t
-
-UniChar = c_uint16
-UniChar_p = POINTER(UniChar)
 
 class CFArray(Structure):
     _fields_ = []
@@ -65,36 +62,21 @@ class CFRange(Structure):
     _fields_ = [('location', CFIndex), ('length', CFIndex)]
 
 
-
-# const UniChar* CFStringGetCharactersPtr(CFStringRef theString);
-corefoundation.CFStringGetCharactersPtr.restype = UniChar_p
-corefoundation.CFStringGetCharactersPtr.argtypes = [CFString_p]
-
-# void CFStringGetCharacters(CFStringRef theString, CFRange range, UniChar* buffer);
-corefoundation.CFStringGetCharacters.restype = None
-corefoundation.CFStringGetCharacters.argtypes = [CFString_p, CFRange, UniChar_p]
+# Boolean CFStringGetCString(CFStringRef theString, char *buffer, CFIndex bufferSize, CFStringEncoding encoding);
+corefoundation.CFStringGetCString.restype = c_bool
+corefoundation.CFStringGetCString.argtypes = [c_void_p, c_char_p, c_ssize_t, c_uint]
 
 # CFIndex CFStringGetLength(CFStringRef theString);
 corefoundation.CFStringGetLength.restype = CFIndex
 corefoundation.CFStringGetLength.argtypes = [CFString_p]
 
 def CFString2Str(cf: CFString_p) -> str:
-    b = corefoundation.CFStringGetCharactersPtr(cf)
-    if b is None:
-        # Both `CFStringGetLength` and `CFStringGetCharacters` are guranteed
-        # to succeed so we'll always be able to return something
-        range = CFRange()
-        range.location = 0
-        range.length = corefundation.CFStringGetLength(cf)
-        b = create_string_buffer(range.length * sizeof(UniChar))
-        corefoundation.CFStringGetCharacters(cf, range, buf)
+    l = corefoundation.CFStringGetLength(cf)
+    b = create_string_buffer((l+1) * sizeof(c_char))
+    if not corefoundation.CFStringGetCString(cf, b, l+1, kCFStringEncodingUTF8):
+        raise ValueError('Cannot retrieve c-string from cfstring')
     b = bytes(b)
-    # UTF-16BE is default encoding unless the strings starts with an LE BOM
-    # – Pythons's 'utf-16' decoder defaults to LE if there is no BOM
-    if b.startswith(codecs.BOM_UTF16_LE):
-        return b.decode('utf-16LE')
-    else:
-        return b.decode('utf-16BE')
+    return b[:l].decode('utf-8')
 
 
 # CFIndex CFArrayGetCount(CFArrayRef theArray);
@@ -153,7 +135,7 @@ corefoundation.CFBundleGetMainBundle.argtypes = []
 corefoundation.CFBundleGetIdentifier.restype = CFString_p
 corefoundation.CFBundleGetIdentifier.argtypes = [CFBundle_p]
 
-def get_bundle_identifier():
+def get_bundle_identifier() -> str:
     """
     Retrieve this app's bundle identifier
 
