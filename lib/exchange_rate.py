@@ -13,7 +13,7 @@ from decimal import Decimal as PyDecimal  # Qt 5.12 also exports Decimal
 
 from .bitcoin import COIN
 from .i18n import _
-from .util import PrintError, ThreadJob, print_error
+from .util import PrintError, ThreadJob, print_error, cache_dir
 
 
 DEFAULT_ENABLED = False
@@ -317,7 +317,7 @@ class FxThread(ThreadJob):
         self.history_used_spot = False
         self.ccy_combo = None
         self.hist_checkbox = None
-        self.cache_dir = os.path.join(config.path, 'cache')
+        self.cache_dir = cache_dir()
         self.set_exchange(self.config_exchange())
         if not os.path.exists(self.cache_dir):
             os.mkdir(self.cache_dir)

@@ -419,6 +419,17 @@ def old_user_dir():
         return user_dir()
 
 
+def cache_dir():
+    if sys.platform.startswith('darwin'):
+        cache_dir = util_macos.get_user_directory('cache')
+        return str(cache_dir / app_id)
+    elif os.name == 'posix' and "HOME" in os.environ:
+        xdg_data_home = os.environ.get("XDG_CACHE_HOME", os.path.join(os.environ["HOME"], ".cache"))
+        return os.path.join(xdg_data_home, "electron-cash")
+    else:
+        return os.path.join(user_dir(True), "cache")
+
+
 def make_dir(path):
     # Make directory if it does not yet exist.
     if not os.path.exists(path):
