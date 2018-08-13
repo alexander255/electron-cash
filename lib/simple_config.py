@@ -101,14 +101,21 @@ class SimpleConfig(PrintError):
         if new_data_dir == old_data_dir:
             # Old and current user data directory are the same
             return
-        if os.path.exists(new_data_dir) or not os.path.exists(old_data_dir):
-            # New directory already exists or there is no old directory to copy from
+        if (os.path.exists(new_data_dir) and os.listdir(new_data_dir)) or not os.path.exists(old_data_dir):
+            # New directory already exists non-emptily or there is no old directory to copy from
             return
 
         self.print_stderr("Copying data files from “{0}” to “{1}”…".format(old_data_dir, new_data_dir))
         try:
-            shutil.copytree(old_data_dir, new_data_dir, symlinks=True)
-        except shutil.Error as error:
+            # Roundabout way of copying files from old directory that allows the target directory
+            # to already exists (just using `shutils.copytree` doesn't allow for this unfortunately)
+            os.makedirs(new_data_dir, exist_ok=True)
+            for entry in os.scandir(old_data_dir):
+                if entry.is_dir(follow_symlinks=True):
+                    shutil.copytree(entry.path, os.path.join(new_data_dir, entry.name), symlinks=True)
+                else:
+                    shutil.copy2(entry.path, os.path.join(new_data_dir, entry.name), follow_symlinks=True)
+        except (OSError, shutil.Error) as error:
             # Something went wrong during copying
             try:
                 # Try to clean up any possibly copied files
