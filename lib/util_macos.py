@@ -25,7 +25,7 @@
 class _Void: pass
 
 import pathlib
-from ctypes import cdll, c_bool, c_char, c_uint, c_void_p, c_char_p, c_ssize_t, POINTER, util, cast, create_string_buffer, sizeof, Structure
+from ctypes import cdll, c_bool, c_char, c_ubyte, c_uint, c_void_p, c_char_p, c_ssize_t, POINTER, util, cast, create_string_buffer, sizeof, Structure, byref
 
 
 # macOS framework libraries used
@@ -45,6 +45,7 @@ kCFStringEncodingUTF8 = 0x08000100
 
 # macOS CoreFoundation types used
 CFIndex = c_ssize_t
+CFIndex_p = POINTER(CFIndex)
 
 class CFArray(Structure):
     _fields_ = []
@@ -70,13 +71,22 @@ corefoundation.CFStringGetCString.argtypes = [c_void_p, c_char_p, c_ssize_t, c_u
 corefoundation.CFStringGetLength.restype = CFIndex
 corefoundation.CFStringGetLength.argtypes = [CFString_p]
 
+# CFIndex CFStringGetBytes(CFStringRef theString, CFRange range, CFStringEncoding encoding, UInt8 lossByte, Boolean isExternalRepresentation, UInt8 *buffer, CFIndex maxBufLen, CFIndex *usedBufLen)
+corefoundation.CFStringGetBytes.restype = CFIndex
+corefoundation.CFStringGetBytes.argtypes = [CFString_p, CFRange, c_uint, c_ubyte, c_bool, c_char_p, CFIndex, CFIndex_p]
+
 def CFString2Str(cf: CFString_p) -> str:
     l = corefoundation.CFStringGetLength(cf)
-    b = create_string_buffer((l+1) * sizeof(c_char))
-    if not corefoundation.CFStringGetCString(cf, b, l+1, kCFStringEncodingUTF8):
+    r = CFRange(0, l)
+    blen = CFIndex(0)
+    lossbyte = c_ubyte(ord(b'?'))
+    slen = corefoundation.CFStringGetBytes(cf, r, kCFStringEncodingUTF8, lossbyte, False, c_char_p(0), 0, byref(blen))
+    buf = create_string_buffer((blen.value+1) * sizeof(c_char))
+    slen = corefoundation.CFStringGetBytes(cf, r, kCFStringEncodingUTF8, lossbyte, False, buf, CFIndex(blen.value+1), byref(blen))
+    if slen != l:
         raise ValueError('Cannot retrieve c-string from cfstring')
-    b = bytes(b)
-    return b[:l].decode('utf-8')
+    buf = bytes(buf)
+    return buf[:blen.value].decode('utf-8')
 
 
 # CFIndex CFArrayGetCount(CFArrayRef theArray);
