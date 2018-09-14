@@ -137,7 +137,16 @@ class SimpleConfig(PrintError):
                 # Continue using old directory for now
                 self.user_data = old_user_data
         else:
-            self.print_stderr("Copying data file succeeded! You may delete the old directory if you do not intend using Electron-Cash version 3.3.* or lower on this system anymore.")
+            try:
+                filename = "– FILES HAVE MOVED –" + (".txt" if os.name == "nt" else "")
+                with open(os.path.join(old_data_dir, filename), "w") as file:
+                    file.write("All Electron-Cash data files have been copied to “{0}”!\n".format(new_data_dir))
+                    file.write("This directory was only kept as a backup in case things were to go terribly wrong and may be removed at any time, unless you intend on keep using pre-3.3 versions of Electron-Cash for the time being.")
+            except OSError as error:
+                print("Creating information file after copying data failed: {0}: {1}".format(
+                    error.__class__.__name__, str(error)
+                ))
+            self.print_stderr("Copying data file succeeded! You may remove the old directory if you do not intend using pre-3.3 versions of Electron-Cash on this system anymore.")
             self.path_upgraded_from = old_data_dir
 
     def upgrade_location_wallet_paths(self):
