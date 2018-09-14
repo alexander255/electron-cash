@@ -32,10 +32,9 @@ from .jsonrpc import VerifyingJSONRPCServer
 
 from .version import PACKAGE_VERSION
 from .network import Network
-from .util import (json_decode, DaemonThread, print_error, to_string,
-                   standardize_path)
+from .util import json_decode, DaemonThread, print_error, to_string
 from .wallet import Wallet
-from .storage import WalletStorage
+from .storage import WalletStorage, normalize_wallet_path
 from .commands import known_commands, Commands
 from .simple_config import SimpleConfig
 from .exchange_rate import FxThread
@@ -216,12 +215,13 @@ class Daemon(DaemonThread):
         return response
 
     def load_wallet(self, path, password):
-        path = standardize_path(path)
-        # wizard will be launched if we return
+        path = normalize_wallet_path(path, self.config.path)[0]
+
+        # wizard will be launched if we return empty
         if path in self.wallets:
             wallet = self.wallets[path]
             return wallet
-        storage = WalletStorage(path, manual_upgrades=True)
+        storage = WalletStorage(path, manual_upgrades=True, base_path=self.config.path)
         if not storage.file_exists():
             return
         if storage.is_encrypted():
@@ -244,6 +244,7 @@ class Daemon(DaemonThread):
         self.wallets[path] = wallet
 
     def get_wallet(self, path):
+        path = normalize_wallet_path(path, self.config.path)[0]
         return self.wallets.get(path)
 
     def delete_wallet(self, path):
@@ -254,6 +255,7 @@ class Daemon(DaemonThread):
         return False
 
     def stop_wallet(self, path):
+        path = normalize_wallet_path(path, self.config.path)[0]
         # Issue #659 wallet may already be stopped.
         if path in self.wallets:
             wallet = self.wallets.pop(path)

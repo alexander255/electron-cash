@@ -521,7 +521,7 @@ class ElectrumWindow(App):
                 self.on_resume()
         else:
             Logger.debug('Electrum: Wallet not found. Launching install wizard')
-            storage = WalletStorage(path)
+            storage = WalletStorage(path, base_path=self.electrum_config.path)
             wizard = Factory.InstallWizard(self.electrum_config, storage)
             wizard.bind(on_wizard_complete=self.on_wizard_complete)
             action = wizard.storage.get_action()
@@ -886,7 +886,7 @@ class ElectrumWindow(App):
             self.protected(_("Enter your PIN code to confirm deletion of {}").format(basename), self.__delete_wallet, ())
 
     def __delete_wallet(self, pw):
-        wallet_path = self.get_wallet_path()
+        wallet_path = self.wallet.storage.realpath
         dirname = os.path.dirname(wallet_path)
         basename = os.path.basename(wallet_path)
         if self.wallet.has_password():

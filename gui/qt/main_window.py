@@ -2,6 +2,7 @@
 #
 # Electrum - lightweight Bitcoin client
 # Copyright (C) 2012 thomasv@gitorious
+# Copyright (C) 2018 Alexander Schlarb
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation files
@@ -421,6 +422,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             ])
             self.show_warning(msg, title=_('Information'))
 
+    def get_wallet_folder(self):
+        return os.path.join(self.config.path, 'wallets')
+
+
     def _is_invalid_testnet_wallet(self):
         if not networks.net.TESTNET:
             return False
@@ -467,7 +472,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
 
     def backup_wallet(self):
-        path = self.wallet.storage.path
+        path = self.wallet.storage.realpath
         wallet_folder = os.path.dirname(path)
         filename, __ = QFileDialog.getSaveFileName(self, _('Enter a filename for the copy of your wallet'), wallet_folder)
         if not filename:
@@ -513,9 +518,6 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 return lambda: gui_object.new_window(k)
             self.recently_visited_menu.addAction(b, loader(k)).setShortcut(QKeySequence("Ctrl+%d"%(i+1)))
         self.recently_visited_menu.setEnabled(len(recent))
-
-    def get_wallet_folder(self):
-        return os.path.dirname(os.path.abspath(self.config.get_wallet_path()))
 
     def new_wallet(self):
         try:

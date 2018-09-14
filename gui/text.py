@@ -19,7 +19,7 @@ class ElectrumGui:
 
         self.config = config
         self.network = daemon.network
-        storage = WalletStorage(config.get_wallet_path())
+        storage = WalletStorage(config.get_wallet_path(), base_path=config.path)
         if not storage.file_exists():
             print("Wallet not found. try 'electron-cash create'")
             exit()

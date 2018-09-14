@@ -250,7 +250,7 @@ class SimpleConfig(PrintError):
         os.chmod(path, stat.S_IREAD | stat.S_IWRITE)
 
     def get_wallet_path(self):
-        """Set the path of the wallet."""
+        """Get the path of the wallet."""
 
         # command line -w option
         if self.get('wallet_path'):
@@ -258,22 +258,24 @@ class SimpleConfig(PrintError):
 
         # path in config file
         path = self.get('default_wallet_path')
-        if path and os.path.exists(path):
+        if path and os.path.exists(os.path.join(self.path, path)):
             return path
 
         # default path
         util.assert_datadir_available(self.path)
-        dirpath = os.path.join(self.path, "wallets")
-        make_dir(dirpath)
+        make_dir(os.path.join(self.path, "wallets"))
 
-        new_path = os.path.join(self.path, "wallets", "default_wallet")
+        new_path = os.path.join("wallets", "default_wallet")
 
         # default path in pre 1.9 versions
-        old_path = os.path.join(self.path, "electrum.dat")
-        if os.path.exists(old_path) and not os.path.exists(new_path):
-            os.rename(old_path, new_path)
+        old_path = "electrum.dat"
+        if os.path.exists(os.path.join(self.path, old_path)) and not os.path.exists(os.path.join(self.path, new_path)):
+            os.rename(os.path.join(self.path, old_path), os.path.join(self.path, new_path))
 
         return new_path
+
+    def get_full_wallet_path(self):
+        return os.path.abspath(os.path.join(self.path, self.get_wallet_path()))
 
     def remove_from_recently_open(self, filename):
         recent = self.get('recently_open', [])

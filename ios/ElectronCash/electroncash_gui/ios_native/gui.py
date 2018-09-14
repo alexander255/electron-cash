@@ -1526,7 +1526,7 @@ class ElectrumGui(PrintError):
                         return
 
                 path = os.path.join(wallets.WalletsMgr.wallets_dir(), wallet_name)
-                storage = WalletStorage(path, manual_upgrades=True)
+                storage = WalletStorage(path, manual_upgrades=True, base_path=self.config.path)
                 if wallet_pass:
                     storage.set_password(wallet_pass, encrypt)
                     if k.may_have_password():
@@ -1560,7 +1560,7 @@ class ElectrumGui(PrintError):
                 from electroncash.wallet import ImportedAddressWallet, ImportedPrivkeyWallet
 
                 path = os.path.join(wallets.WalletsMgr.wallets_dir(), wallet_name)
-                storage = WalletStorage(path, manual_upgrades=True)
+                storage = WalletStorage(path, manual_upgrades=True, base_path=self.config.path)
                 keystores = list()
 
                 if private_keys:
@@ -1622,7 +1622,7 @@ class ElectrumGui(PrintError):
         if not onCancel: onCancel = lambda: print("User Cancel")
         wallet_name = os.path.split(wallet_name)[1]
         path = os.path.join(wallets.WalletsMgr.wallets_dir(), wallet_name)
-        storage = WalletStorage(path, manual_upgrades=True)
+        storage = WalletStorage(path, manual_upgrades=True, base_path=self.config.path)
         if not storage.file_exists():
             onFailure("Wallet File Not Found")
             return
@@ -1691,7 +1691,7 @@ class ElectrumGui(PrintError):
             return
         if warnIfUnsafe:
             try:
-                storage = WalletStorage(info.full_path, manual_upgrades=True)
+                storage = WalletStorage(info.full_path, manual_upgrades=True, base_path=self.config.path)
                 if not storage.is_encrypted():
                     w = Wallet(storage)
                     if not w.is_watching_only() and not w.has_password():
@@ -1805,7 +1805,7 @@ class ElectrumGui(PrintError):
             else:
                 return password_dialog.prompt_password_asynch(vc = vc, onOk = my_callback, prompt = prompt, title = title, onCancel = onCancel, onForcedDismissal = onForcedDismissal)
         if usingStorage:
-            storage = WalletStorage(usingStorage, manual_upgrades=True) if not isinstance(usingStorage, WalletStorage) else usingStorage
+            storage = WalletStorage(usingStorage, manual_upgrades=True, base_path=self.config.path) if not isinstance(usingStorage, WalletStorage) else usingStorage
             if not isinstance(storage, WalletStorage):
                 raise ValueError('usingStorage parameter needs to be a WalletStorage instance or a string path!')
             if not storage.file_exists():

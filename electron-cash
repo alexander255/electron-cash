@@ -124,7 +124,7 @@ def prompt_password(prompt, confirm=True):
 def run_non_RPC(config):
     cmdname = config.get('cmd')
 
-    storage = WalletStorage(config.get_wallet_path())
+    storage = WalletStorage(config.get_wallet_path(), base_path=config.path)
     if storage.file_exists():
         sys.exit("Error: Remove the existing wallet first!")
 
@@ -186,7 +186,7 @@ def run_non_RPC(config):
 
 def init_daemon(config_options):
     config = SimpleConfig(config_options)
-    storage = WalletStorage(config.get_wallet_path())
+    storage = WalletStorage(config.get_wallet_path(), base_path=config.path)
     if not storage.file_exists():
         print_msg("Error: Wallet file not found.")
         print_msg("Type 'electron-cash create' to create a new wallet, or provide a path to a wallet with the -w option")
@@ -223,7 +223,7 @@ def init_cmdline(config_options, server):
         cmd.requires_network = True
 
     # instanciate wallet for command-line
-    storage = WalletStorage(config.get_wallet_path())
+    storage = WalletStorage(config.get_wallet_path(), base_path=config.path)
 
     if cmd.requires_wallet and not storage.file_exists():
         print_msg("Error: Wallet file not found.")
@@ -263,7 +263,7 @@ def run_offline_command(config, config_options):
     cmd = known_commands[cmdname]
     password = config_options.get('password')
     if cmd.requires_wallet:
-        storage = WalletStorage(config.get_wallet_path())
+        storage = WalletStorage(config.get_wallet_path(), base_path=config.path)
         if storage.is_encrypted():
             storage.decrypt(password)
         wallet = Wallet(storage)

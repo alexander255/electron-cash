@@ -109,7 +109,7 @@ class AndroidCommands(commands.Commands):
         path = self._wallet_path(name)
         wallet = self.daemon.get_wallet(path)
         if not wallet:
-            storage = WalletStorage(path)
+            storage = WalletStorage(path, base_path=self.config.path)
             if not storage.file_exists():
                 raise FileNotFoundError(path)
             if storage.is_encrypted():
@@ -145,7 +145,7 @@ class AndroidCommands(commands.Commands):
         path = self._wallet_path(name)
         if exists(path):
             raise FileExistsError(path)
-        storage = WalletStorage(path)
+        storage = WalletStorage(path, base_path=self.config.path)
 
         if addresses:
             wallet = ImportedAddressWallet.from_text(storage, addresses)

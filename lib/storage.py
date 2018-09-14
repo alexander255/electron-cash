@@ -34,7 +34,7 @@ import base64
 import zlib
 
 from .address import Address
-from .util import PrintError, profiler, standardize_path
+from .util import PrintError, profiler
 from .plugins import run_hook, plugin_loaders
 from .keystore import bip44_derivation
 from . import bitcoin
@@ -61,20 +61,35 @@ def multisig_type(wallet_type):
     return match
 
 
+def normalize_wallet_path(path, base_path=None):
+    assert not base_path or os.path.isabs(base_path)
+
+    path = os.path.normcase(os.path.normpath(path))
+    if base_path:
+        base_path = os.path.normcase(os.path.normpath(base_path))
+        if path.startswith(base_path + os.sep) and os.path.isabs(base_path):
+            path = path[len(base_path)+len(os.sep):]
+        realpath = os.path.realpath(os.path.abspath(os.path.join(base_path, path)))
+    else:
+        realpath = os.path.realpath(os.path.abspath(path))
+    return (path, realpath)
+
+
 class WalletStorage(PrintError):
 
-    def __init__(self, path, manual_upgrades=False):
-        self.path = path = standardize_path(path)
+    def __init__(self, path, manual_upgrades=False, base_path=None):
         self.print_error("wallet path", path)
         self.manual_upgrades = manual_upgrades
         self.lock = threading.RLock()
         self.data = {}
-        self._file_exists = self.path and os.path.exists(self.path)
+        self.base_path = base_path
+        self.path, self.realpath = normalize_wallet_path(path, base_path)
+        self._file_exists = self.realpath and os.path.exists(self.realpath)
         self.modified = False
         self.pubkey = None
         if self.file_exists():
             try:
-                with open(self.path, "r", encoding='utf-8') as f:
+                with open(self.realpath, "r", encoding='utf-8') as f:
                     self.raw = f.read()
             except UnicodeDecodeError as e:
                 raise IOError("Error reading file: "+ str(e))
@@ -189,23 +204,23 @@ class WalletStorage(PrintError):
             s = bitcoin.encrypt_message(c, self.pubkey)
             s = s.decode('utf8')
 
-        temp_path = self.path + TMP_SUFFIX
+        temp_path = self.realpath + TMP_SUFFIX
         with open(temp_path, "w", encoding='utf-8') as f:
             f.write(s)
             f.flush()
             os.fsync(f.fileno())
 
-        mode = os.stat(self.path).st_mode if self.file_exists() else stat.S_IREAD | stat.S_IWRITE
+        mode = os.stat(self.realpath).st_mode if self.file_exists() else stat.S_IREAD | stat.S_IWRITE
         if not self.file_exists():
             # See: https://github.com/spesmilo/electrum/issues/5082
-            assert not os.path.exists(self.path)
+            assert not os.path.exists(self.realpath)
         # perform atomic write on POSIX systems
         try:
-            os.rename(temp_path, self.path)
+            os.rename(temp_path, self.realpath)
         except:
-            os.remove(self.path)
-            os.rename(temp_path, self.path)
-        os.chmod(self.path, mode)
+            os.remove(self.realpath)
+            os.rename(temp_path, self.realpath)
+        os.chmod(self.realpath, mode)
         self.raw = s
         self._file_exists = True
         self.print_error("saved", self.path)
@@ -224,12 +239,12 @@ class WalletStorage(PrintError):
         wallet_type = storage.get('wallet_type')
         if wallet_type == 'old':
             assert len(d) == 2
-            storage1 = WalletStorage(storage.path + '.deterministic')
+            storage1 = WalletStorage(storage.path + '.deterministic', base_path=self.base_path)
             storage1.data = copy.deepcopy(storage.data)
             storage1.put('accounts', {'0': d['0']})
             storage1.upgrade()
             storage1.write()
-            storage2 = WalletStorage(storage.path + '.imported')
+            storage2 = WalletStorage(storage.path + '.imported', base_path=self.base_path)
             storage2.data = copy.deepcopy(storage.data)
             storage2.put('accounts', {'/x': d['/x']})
             storage2.put('seed', None)
@@ -248,7 +263,7 @@ class WalletStorage(PrintError):
                     continue
                 xpub = mpk["x/%d'"%i]
                 new_path = storage.path + '.' + k
-                storage2 = WalletStorage(new_path)
+                storage2 = WalletStorage(new_path, base_path=self.base_path)
                 storage2.data = copy.deepcopy(storage.data)
                 # save account, derivation and xpub at index 0
                 storage2.put('accounts', {'0': x})

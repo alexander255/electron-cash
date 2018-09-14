@@ -186,7 +186,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         def on_filename(filename):
             path = os.path.join(wallet_folder, filename)
             try:
-                self.storage = WalletStorage(path, manual_upgrades=True)
+                self.storage = WalletStorage(path, manual_upgrades=True, base_path=self.storage.base_path)
                 self.next_button.setEnabled(True)
             except IOError:
                 self.storage = None
