@@ -9,6 +9,7 @@ import stat
 from . import util
 from copy import deepcopy
 from .util import user_dir, old_user_dir, make_dir, print_error, PrintError
+from .storage import normalize_wallet_path
 
 from .bitcoin import MAX_FEE_RATE, FEE_TARGETS
 
@@ -86,6 +87,10 @@ class SimpleConfig(PrintError):
         if self.requires_upgrade():
             self.upgrade()
 
+        # config upgrade - wallet paths after location change
+        if self.path_upgraded_from:
+            self.upgrade_location_wallet_paths()
+
         # Make a singleton instance of 'self'
         set_config(self)
 
@@ -134,6 +139,22 @@ class SimpleConfig(PrintError):
         else:
             self.print_stderr("Copying data file succeeded! You may delete the old directory if you do not intend using Electron-Cash version 3.3.* or lower on this system anymore.")
             self.path_upgraded_from = old_data_dir
+
+    def upgrade_location_wallet_paths(self):
+        if not self.path_upgraded_from:
+            return
+
+        def fix_internal_wallet_path(path):
+            return normalize_wallet_path(path, self.path_upgraded_from)[0]
+
+        if "gui_last_wallet" in self.user_config:
+            self.user_config["gui_last_wallet"] = fix_internal_wallet_path(self.user_config["gui_last_wallet"])
+
+        if "default_wallet_path" in self.user_config:
+            self.user_config["default_wallet_path"] = fix_internal_wallet_path(self.user_config["default_wallet_path"])
+
+        if "recently_open" in self.user_config:
+            self.user_config["recently_open"] = list(map(fix_internal_wallet_path, self.user_config["recently_open"]))
 
     def electrum_path(self):
         # Read electrum_cash_path from command line
